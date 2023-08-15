@@ -1,11 +1,15 @@
 package com.latam.alura.tienda.dao;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 import javax.persistence.EntityManager;
+import javax.persistence.TypedQuery;
 
 import com.latam.alura.tienda.modelo.Pedido;
+import com.latam.alura.tienda.modelo.Producto;
+import com.latam.alura.tienda.vo.RelatorioDeVenta;
 
 public class PedidoDAO {
 
@@ -28,19 +32,43 @@ public class PedidoDAO {
 		return em.createQuery(jpql, Pedido.class).getResultList();
 	}
 	
-	public List<Pedido> consultaPorNombre(String nombre) {
-		String jpql = "SELECT P FROM Pedido AS P WHERE P.nombre=:nombre";
-		return em.createQuery(jpql,Pedido.class).setParameter("nombre", nombre).getResultList();
+	public BigDecimal valorTotalVendido() {
+		String jpql = "SELECT MAX(p.valorTotal) FROM Pedido p";
+		return em.createQuery(jpql, BigDecimal.class).getSingleResult();
+	}
+	
+	public Double valorPromedioVendido() {
+		String jpql= "SELECT AVG(p.valorTotal) FROM Pedido p";
+		return em.createQuery(jpql, Double.class).getSingleResult();
+	}
+	
+	public List<Object[]> relatorioDeVenta(){
+		String jpql="SELECT producto.nombre, "
+				+ "SUM(item.cantidad), "
+				+ "MAX(pedido.fecha) "
+				+ "FROM Pedido pedido "
+				+ "JOIN  pedido.items item "
+				+ "JOIN item.producto producto "
+				+ "GROUP BY producto.nombre "
+				+ "ORDER BY item.cantidad DESC ";
+		return em.createQuery(jpql, Object[].class).getResultList();
+	}
+	
+	public List<RelatorioDeVenta> relatorioDeVentaVO(){
+		String jpql="SELECT new com.latam.alura.tienda.vo.RelatorioDeVenta(producto.nombre, "
+				+ "SUM(item.cantidad), "
+				+ "MAX(pedido.fecha)) "
+				+ "FROM Pedido pedido "
+				+ "JOIN  pedido.items item "
+				+ "JOIN item.producto producto "
+				+ "GROUP BY producto.nombre "
+				+ "ORDER BY item.cantidad DESC ";
+		return em.createQuery(jpql, RelatorioDeVenta.class).getResultList();
+				}
 		
+		public Pedido consultarPedidoConCliente(Long id) {
+			String jpql = "SELECT p FROM Pedido JOIN FETCH p.cliente WHERE p.id=:id";
+			return em.createQuery(jpql, Pedido.class).setParameter("id", id).getSingleResult();	
 	}
-	
-	public List<Pedido> consultaPorNombreCategoria(String nombre){
-		String jpql="SELECT P FROM Pedido AS P WHERE P.categoria.nombre=:nombre";
-		return em.createQuery(jpql,Pedido.class).setParameter("nombre", nombre).getResultList();
-	}
-	
-	public BigDecimal consultarPrecioPorNombreDeProducto(String nombre) {
-		String jpql = "SELECT P.precio FROM Pedido AS P WHERE P.nombre=:nombre";
-		return em.createQuery(jpql,BigDecimal.class).setParameter("nombre", nombre).getSingleResult();
-	}
+
 }
